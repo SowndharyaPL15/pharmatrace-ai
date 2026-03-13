@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register Batch — PharmaTrace AI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<%- include('partials/navbar') %>
+<div class="container py-4" style="max-width:860px">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <div style="font-size:2.5rem">🏭</div>
+    <div>
+      <h4 class="fw-bold mb-0">Register Medicine Batch</h4>
+      <p class="text-muted small mb-0">Fill in the batch details. A unique QR code will be auto-generated.</p>
+    </div>
+  </div>
+
+  <% if (error && error.length) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <% if (success && success.length) { %>
+  <div class="alert alert-success">
+    <%= success %>
+    <% const batchMatch = success[0] ? success[0].match(/Batch "([^"]+)"/) : null; %>
+    <% if(batchMatch && batchMatch[1]) { %>
+      <div class="mt-2">
+        <a href="/medicines/qr/page/<%= batchMatch[1] %>" class="btn btn-sm btn-primary" target="_blank">📱 View QR Code</a>
+        <a href="/verify/<%= batchMatch[1] %>" class="btn btn-sm btn-outline-primary ms-2" target="_blank">🔍 Verify Batch</a>
+      </div>
+    <% } %>
+  </div>
+  <% } %>
+
+  <form method="POST" action="/medicines/add">
+
+    <!-- Section 1: Basic Info -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">📋 Basic Information</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Batch ID <span class="text-danger">*</span></label>
+            <input type="text" name="batch_id" class="form-control" placeholder="e.g. BATCH-2024-001" required>
+            <div class="form-text">Must be unique. Duplicate will trigger a counterfeit alert.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Medicine Name <span class="text-danger">*</span></label>
+            <input type="text" name="medicine_name" class="form-control" placeholder="e.g. Paracetamol 500mg" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Manufacturer Name <span class="text-danger">*</span></label>
+            <input type="text" name="manufacturer_name" class="form-control" placeholder="e.g. Sun Pharma Ltd." required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Dosage Form</label>
+            <select name="dosage_form" class="form-select">
+              <option value="">Select...</option>
+              <option>Tablet</option>
+              <option>Capsule</option>
+              <option>Syrup</option>
+              <option>Injection</option>
+              <option>Cream</option>
+              <option>Drops</option>
+              <option>Powder</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Quantity <span class="text-danger">*</span></label>
+            <input type="number" name="quantity" class="form-control" placeholder="5000" min="1" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Active Ingredient</label>
+            <input type="text" name="active_ingredient" class="form-control" placeholder="e.g. Paracetamol">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="2" placeholder="Brief description of the medicine..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Dates -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">📅 Manufacturing & Expiry Dates</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Manufacturing Date <span class="text-danger">*</span></label>
+            <input type="date" name="manufacturing_date" class="form-control" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Expiry Date <span class="text-danger">*</span></label>
+            <input type="date" name="expiry_date" class="form-control" required>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Packaging -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">📦 Packaging & Storage</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Package Type</label>
+            <select name="package_type" class="form-select">
+              <option value="">Select...</option>
+              <option>Blister Pack</option>
+              <option>Strip Pack</option>
+              <option>Bottle</option>
+              <option>Vial</option>
+              <option>Ampoule</option>
+              <option>Sachet</option>
+              <option>Tube</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Storage Condition</label>
+            <select name="storage_condition" class="form-select">
+              <option value="">Select...</option>
+              <option>Room Temperature (15-25°C)</option>
+              <option>Cool & Dry Place</option>
+              <option>Refrigerated (2-8°C)</option>
+              <option>Frozen (-20°C)</option>
+              <option>Keep Away from Light</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Temperature Requirement</label>
+            <input type="text" name="temperature_requirement" class="form-control" placeholder="e.g. 2°C – 8°C">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-3">
+      <button type="submit" class="btn btn-primary px-5 py-2 fw-semibold">
+        🏷️ Register Batch & Generate QR Code
+      </button>
+      <a href="/medicines" class="btn btn-outline-secondary px-4 py-2">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Auto-set today as manufacturing date default
+  document.querySelector('[name="manufacturing_date"]').valueAsDate = new Date();
+</script>
+</body>
+</html>

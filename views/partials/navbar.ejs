@@ -1,0 +1,59 @@
+<nav class="navbar navbar-expand-lg navbar-dark" style="background:linear-gradient(135deg,#1a1a2e,#16213e);">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/dashboard">
+      <span style="font-size:1.4rem">💊</span>
+      <span style="letter-spacing:1px">PharmaTrace <span class="text-primary">AI</span></span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMain">
+      <ul class="navbar-nav me-auto gap-1">
+        <li class="nav-item">
+          <a class="nav-link px-3 rounded" href="/dashboard">🏠 Dashboard</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link px-3 rounded" href="/medicines">💊 Medicines</a>
+        </li>
+        <% if (user && (user.role === 'manufacturer')) { %>
+        <li class="nav-item">
+          <a class="nav-link px-3 rounded" href="/medicines/add">➕ Register Batch</a>
+        </li>
+        <% } %>
+        <% if (user && (user.role === 'inspector' || user.role === 'admin')) { %>
+        <li class="nav-item">
+          <a class="nav-link px-3 rounded" href="/testing">🔬 Quality Test</a>
+        </li>
+        <% } %>
+        <% if (user && (user.role !== 'consumer')) { %>
+        <li class="nav-item">
+          <a class="nav-link px-3 rounded" href="/supply">🚚 Supply Chain</a>
+        </li>
+        <% } %>
+        <li class="nav-item">
+          <a class="nav-link px-3 rounded" href="/verify">🔍 Verify</a>
+        </li>
+        <% if (user && user.role === 'admin') { %>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle px-3 rounded" href="#" data-bs-toggle="dropdown">⚙️ Admin</a>
+          <ul class="dropdown-menu dropdown-menu-dark">
+            <li><a class="dropdown-item" href="/admin/analytics">📊 Analytics</a></li>
+            <li><a class="dropdown-item" href="/admin/alerts">🚨 Alerts</a></li>
+            <li><a class="dropdown-item" href="/admin/users">👥 Users</a></li>
+            <li><a class="dropdown-item" href="/admin/inventory">📦 Inventory</a></li>
+          </ul>
+        </li>
+        <% } %>
+      </ul>
+      <% if (user) { %>
+      <div class="d-flex align-items-center gap-3">
+        <div class="text-end">
+          <div class="text-white fw-semibold" style="font-size:.85rem;line-height:1.1"><%= user.username %></div>
+          <div><span class="badge" style="background:rgba(255,255,255,.15);font-size:.7rem"><%= user.role.toUpperCase() %></span></div>
+        </div>
+        <a href="/logout" class="btn btn-outline-danger btn-sm px-3">Logout</a>
+      </div>
+      <% } %>
+    </div>
+  </div>
+</nav>

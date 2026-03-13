@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alerts — PharmaTrace AI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<%- include('partials/navbar') %>
+<div class="container-fluid px-4 py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h4 class="fw-bold mb-0">🚨 System Alerts</h4>
+      <p class="text-muted small mb-0">Monitor and resolve quality, safety and supply chain alerts</p>
+    </div>
+    <div class="d-flex gap-2">
+      <select id="severityFilter" class="form-select form-select-sm" style="width:auto">
+        <option value="">All Severities</option>
+        <option value="CRITICAL">CRITICAL</option>
+        <option value="HIGH">HIGH</option>
+        <option value="MEDIUM">MEDIUM</option>
+        <option value="LOW">LOW</option>
+      </select>
+      <select id="statusFilter" class="form-select form-select-sm" style="width:auto">
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="resolved">Resolved</option>
+      </select>
+    </div>
+  </div>
+
+  <% if (error && error.length) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <% if (success && success.length) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+  <!-- Summary Cards -->
+  <%
+    const critical = alerts.filter(a => a.severity==='CRITICAL' && !a.resolved).length;
+    const high     = alerts.filter(a => a.severity==='HIGH'     && !a.resolved).length;
+    const medium   = alerts.filter(a => a.severity==='MEDIUM'   && !a.resolved).length;
+    const total    = alerts.filter(a => !a.resolved).length;
+  %>
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card p-3 text-center border-danger">
+        <div class="fw-bold" style="font-size:2rem;color:#dc3545"><%= critical %></div>
+        <div class="small text-muted">Critical</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card p-3 text-center border-warning">
+        <div class="fw-bold" style="font-size:2rem;color:#ffc107"><%= high %></div>
+        <div class="small text-muted">High</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card p-3 text-center border-info">
+        <div class="fw-bold" style="font-size:2rem;color:#0dcaf0"><%= medium %></div>
+        <div class="small text-muted">Medium</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card p-3 text-center">
+        <div class="fw-bold" style="font-size:2rem;color:#6c757d"><%= total %></div>
+        <div class="small text-muted">Total Active</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0" id="alertTable">
+        <thead class="table-dark">
+          <tr><th>#</th><th>Batch ID</th><th>Type</th><th>Severity</th><th>Message</th><th>Status</th><th>Date</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+        <% if(alerts && alerts.length) { %>
+          <% alerts.forEach((a, i) => { %>
+          <tr data-severity="<%= a.severity %>" data-status="<%= a.resolved ? 'resolved' : 'active' %>"
+              class="<%= !a.resolved && a.severity==='CRITICAL' ? 'table-danger' : !a.resolved && a.severity==='HIGH' ? 'table-warning' : '' %>">
+            <td class="text-muted small"><%= i+1 %></td>
+            <td>
+              <% if(a.batch_id) { %>
+                <a href="/verify/<%= a.batch_id %>" class="text-primary"><code><%= a.batch_id %></code></a>
+              <% } else { %><span class="text-muted">—</span><% } %>
+            </td>
+            <td>
+              <span class="badge bg-secondary" style="font-size:.7rem"><%= a.alert_type.replace(/_/g,' ') %></span>
+            </td>
+            <td>
+              <span class="badge bg-<%= a.severity==='CRITICAL'?'danger':a.severity==='HIGH'?'warning text-dark':a.severity==='MEDIUM'?'info':'secondary' %>">
+                <%= a.severity %>
+              </span>
+            </td>
+            <td class="small"><%= a.message %></td>
+            <td>
+              <span class="badge bg-<%= a.resolved ? 'success' : 'danger' %>">
+                <%= a.resolved ? '✅ Resolved' : '🔴 Active' %>
+              </span>
+            </td>
+            <td class="small text-muted"><%= new Date(a.created_at).toLocaleString('en-IN') %></td>
+            <td>
+              <% if (!a.resolved) { %>
+              <form method="POST" action="/admin/alerts/<%= a.id %>/resolve" style="display:inline">
+                <button class="btn btn-sm btn-success">Resolve</button>
+              </form>
+              <% } else { %>
+                <small class="text-muted">—</small>
+              <% } %>
+            </td>
+          </tr>
+          <% }) %>
+        <% } else { %>
+          <tr><td colspan="8" class="text-center text-muted py-5">✅ No alerts in the system.</td></tr>
+        <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.getElementById('severityFilter').addEventListener('change', filterAlerts);
+  document.getElementById('statusFilter').addEventListener('change', filterAlerts);
+  function filterAlerts() {
+    const sev = document.getElementById('severityFilter').value;
+    const sta = document.getElementById('statusFilter').value;
+    document.querySelectorAll('#alertTable tbody tr').forEach(row => {
+      const matchSev = !sev || row.dataset.severity === sev;
+      const matchSta = !sta || row.dataset.status   === sta;
+      row.style.display = (matchSev && matchSta) ? '' : 'none';
+    });
+  }
+</script>
+</body>
+</html>

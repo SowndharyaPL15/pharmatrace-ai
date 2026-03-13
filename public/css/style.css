@@ -1,0 +1,193 @@
+/* ================================================================
+   PharmaTrace AI — Main Stylesheet
+   ================================================================ */
+
+:root {
+  --pt-primary:   #0d6efd;
+  --pt-success:   #198754;
+  --pt-danger:    #dc3545;
+  --pt-warning:   #ffc107;
+  --pt-dark:      #212529;
+  --pt-card-bg:   #ffffff;
+  --pt-body-bg:   #f0f2f5;
+  --pt-border-r:  14px;
+}
+
+/* ── Base ─────────────────────────────────────────────────────── */
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background-color: var(--pt-body-bg);
+  color: #333;
+  font-size: 0.9rem;
+}
+
+/* ── Navbar ───────────────────────────────────────────────────── */
+.navbar {
+  box-shadow: 0 2px 16px rgba(0,0,0,0.3);
+  padding: 0.6rem 0;
+}
+.navbar .nav-link {
+  font-size: .85rem;
+  transition: background .15s;
+}
+.navbar .nav-link:hover {
+  background: rgba(255,255,255,.1);
+  border-radius: 6px;
+}
+
+/* ── Cards ────────────────────────────────────────────────────── */
+.card {
+  background: var(--pt-card-bg);
+  border: none;
+  border-radius: var(--pt-border-r);
+  box-shadow: 0 1px 10px rgba(0,0,0,.07);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,.11);
+}
+.card-header {
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  border-radius: var(--pt-border-r) var(--pt-border-r) 0 0 !important;
+  padding: .75rem 1.25rem;
+  font-size: .875rem;
+}
+
+/* ── KPI Numbers ──────────────────────────────────────────────── */
+.kpi-number {
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.kpi-label {
+  font-size: .85rem;
+  opacity: .88;
+  margin-top: 4px;
+}
+
+/* ── Action Cards (dashboard quick actions) ───────────────────── */
+.action-card {
+  border: 2px solid transparent;
+  border-radius: 14px;
+  transition: all .2s;
+  color: #333;
+  background: white;
+}
+.action-card:hover {
+  border-color: var(--pt-primary);
+  transform: translateY(-3px);
+  color: var(--pt-primary);
+  box-shadow: 0 6px 20px rgba(13,110,253,.15);
+}
+
+/* ── Tables ───────────────────────────────────────────────────── */
+.table {
+  font-size: .85rem;
+}
+.table thead th {
+  font-weight: 600;
+  letter-spacing: .3px;
+  font-size: .8rem;
+  text-transform: uppercase;
+  padding: .75rem 1rem;
+}
+.table td {
+  vertical-align: middle;
+  padding: .65rem 1rem;
+}
+.table-hover > tbody > tr:hover > td {
+  background-color: rgba(13,110,253,.04);
+}
+
+/* ── Badges ───────────────────────────────────────────────────── */
+.badge {
+  font-size: .72rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 500;
+  letter-spacing: .3px;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────── */
+.btn {
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: .875rem;
+}
+.btn-sm {
+  padding: 4px 12px;
+  font-size: .8rem;
+}
+
+/* ── Forms ────────────────────────────────────────────────────── */
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--pt-primary);
+  box-shadow: 0 0 0 .2rem rgba(13,110,253,.15);
+}
+.form-label {
+  font-weight: 500;
+  font-size: .85rem;
+  color: #495057;
+  margin-bottom: .3rem;
+}
+
+/* ── Monospace batch IDs ──────────────────────────────────────── */
+code {
+  background: rgba(13,110,253,.08);
+  color: var(--pt-primary);
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: .85em;
+}
+.fw-mono { font-family: monospace; }
+
+/* ── Alerts ───────────────────────────────────────────────────── */
+.alert {
+  border-radius: 10px;
+  border: none;
+  font-size: .875rem;
+}
+
+/* ── Supply chain nodes ───────────────────────────────────────── */
+.supply-node {
+  color: white;
+  border-radius: 14px;
+  padding: 14px 22px;
+  text-align: center;
+  width: 240px;
+  margin: 0 auto;
+  box-shadow: 0 4px 16px rgba(0,0,0,.15);
+}
+.supply-arrow {
+  color: #6c757d;
+  font-weight: 600;
+  font-size: .8rem;
+  padding: 5px 0;
+  letter-spacing: .5px;
+}
+
+/* ── Verify page ──────────────────────────────────────────────── */
+.verify-banner {
+  padding: 16px 22px;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .kpi-number { font-size: 1.8rem; }
+  .container-fluid { padding: 0 12px; }
+  .supply-node { width: 100%; }
+}
+
+/* ── Scrollbar styling ────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #ced4da; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #adb5bd; }

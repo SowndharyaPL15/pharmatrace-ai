@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supply History — PharmaTrace AI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<%- include('partials/navbar') %>
+<div class="container-fluid px-4 py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h4 class="fw-bold mb-0">📋 Supply Chain History</h4>
+      <p class="text-muted small mb-0">All medicine transfers and their confirmation status</p>
+    </div>
+    <a href="/supply" class="btn btn-primary btn-sm">+ New Transfer</a>
+  </div>
+
+  <% if (error && error.length) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <% if (success && success.length) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+  <!-- Search -->
+  <div class="card p-3 mb-3">
+    <input type="text" id="searchInput" class="form-control form-control-sm" style="max-width:350px"
+           placeholder="🔍 Search by batch ID, medicine or name...">
+  </div>
+
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0" id="supplyTable">
+        <thead class="table-dark">
+          <tr>
+            <th>#</th>
+            <th>Batch ID</th>
+            <th>Medicine</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Qty</th>
+            <th>Location</th>
+            <th>Transfer Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+        <% if(transfers && transfers.length) { %>
+          <% transfers.forEach((t, i) => { %>
+          <tr>
+            <td class="text-muted small"><%= i+1 %></td>
+            <td><a href="/verify/<%= t.batch_id %>" class="text-primary"><code><%= t.batch_id %></code></a></td>
+            <td class="small fw-semibold"><%= t.medicine_name %></td>
+            <td class="small">
+              <div class="fw-semibold"><%= t.sender_name %></div>
+              <div class="text-muted"><%= t.sender_org || t.sender_role %></div>
+            </td>
+            <td class="small">
+              <div class="fw-semibold"><%= t.receiver_name %></div>
+              <div class="text-muted"><%= t.receiver_org || t.receiver_role %></div>
+            </td>
+            <td class="small"><%= t.quantity || '—' %></td>
+            <td class="small text-muted">📍 <%= t.location || '—' %></td>
+            <td class="small text-muted"><%= new Date(t.transfer_date).toLocaleString('en-IN') %></td>
+            <td>
+              <% if(t.confirmed) { %>
+                <span class="badge bg-success">✅ Confirmed</span>
+                <% if(t.confirmed_at) { %>
+                  <div class="small text-muted"><%= new Date(t.confirmed_at).toLocaleDateString('en-IN') %></div>
+                <% } %>
+              <% } else { %>
+                <span class="badge bg-warning text-dark">⏳ Pending</span>
+              <% } %>
+            </td>
+            <td>
+              <% if (!t.confirmed && user && user.id == t.receiver_id) { %>
+              <form method="POST" action="/supply/confirm" style="display:inline">
+                <input type="hidden" name="transfer_id" value="<%= t.id %>">
+                <button class="btn btn-success btn-sm">✅ Confirm Receipt</button>
+              </form>
+              <% } %>
+              <a href="/verify/<%= t.batch_id %>" class="btn btn-outline-secondary btn-sm">🔍</a>
+            </td>
+          </tr>
+          <% }) %>
+        <% } else { %>
+          <tr><td colspan="10" class="text-center text-muted py-5">
+            No transfers recorded yet. <a href="/supply">Start a transfer →</a>
+          </td></tr>
+        <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.getElementById('searchInput').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#supplyTable tbody tr').forEach(row => {
+      row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+</script>
+</body>
+</html>

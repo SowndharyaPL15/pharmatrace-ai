@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supply Chain — PharmaTrace AI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<%- include('partials/navbar') %>
+<div class="container-fluid px-4 py-4">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <div style="font-size:2.5rem">🚚</div>
+    <div>
+      <h4 class="fw-bold mb-0">Supply Chain Transfer</h4>
+      <p class="text-muted small mb-0">Transfer approved medicine batches to the next entity in the supply chain</p>
+    </div>
+  </div>
+
+  <% if (error && error.length) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <% if (success && success.length) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+  <div class="row g-4">
+
+    <!-- Transfer Form -->
+    <div class="col-lg-5">
+      <div class="card">
+        <div class="card-header fw-semibold">📦 Initiate Transfer</div>
+        <div class="card-body">
+          <% if (!medicines.length) { %>
+            <div class="alert alert-warning">
+              No approved medicines in your inventory. You must have approved batches to transfer.
+            </div>
+          <% } %>
+          <form method="POST" action="/supply/transfer">
+            <div class="mb-3">
+              <label class="form-label">Select Batch <span class="text-danger">*</span></label>
+              <select name="batch_id" class="form-select" required>
+                <option value="">-- Choose approved batch --</option>
+                <% medicines.forEach(m => { %>
+                  <option value="<%= m.batch_id %>">
+                    <%= m.batch_id %> — <%= m.medicine_name %> (Stock: <%= m.quantity %>)
+                  </option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Transfer To <span class="text-danger">*</span></label>
+              <select name="receiver_id" class="form-select" required>
+                <option value="">-- Select receiver --</option>
+                <% receivers.forEach(r => { %>
+                  <option value="<%= r.id %>">
+                    <%= r.username %> (<%= r.role %>) — <%= r.organization || 'No org' %>
+                  </option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Quantity to Transfer <span class="text-danger">*</span></label>
+              <input type="number" name="quantity" class="form-control" min="1" placeholder="e.g. 500" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Destination / Location <span class="text-danger">*</span></label>
+              <input type="text" name="location" class="form-control" placeholder="e.g. Mumbai Central Warehouse" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Notes</label>
+              <textarea name="notes" class="form-control" rows="2" placeholder="Optional remarks..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 fw-semibold py-2">🚚 Initiate Transfer</button>
+          </form>
+        </div>
+      </div>
+      <div class="mt-3">
+        <a href="/supply/history" class="btn btn-outline-secondary w-100">📋 View Transfer History</a>
+      </div>
+    </div>
+
+    <!-- Supply Chain Flow Diagram -->
+    <div class="col-lg-7">
+      <div class="card h-100">
+        <div class="card-header fw-semibold">🗺️ Supply Chain Flow</div>
+        <div class="card-body d-flex align-items-center justify-content-center">
+          <div class="w-100">
+            <div class="d-flex flex-column align-items-center gap-0">
+
+              <div class="supply-node" style="background:linear-gradient(135deg,#667eea,#764ba2)">
+                <div style="font-size:1.8rem">🏭</div>
+                <div class="fw-semibold">Manufacturer</div>
+                <div class="small opacity-75">Registers batch, generates QR</div>
+              </div>
+
+              <div class="supply-arrow">↓ Quality Testing ↓</div>
+
+              <div class="supply-node" style="background:linear-gradient(135deg,#11998e,#38ef7d);color:#065f46">
+                <div style="font-size:1.8rem">🔬</div>
+                <div class="fw-semibold">Lab Inspector</div>
+                <div class="small opacity-75">Tests purity, sterility, pH</div>
+              </div>
+
+              <div class="supply-arrow">↓ Approved Batches Only ↓</div>
+
+              <div class="supply-node" style="background:linear-gradient(135deg,#f7971e,#ffd200);color:#333">
+                <div style="font-size:1.8rem">🚚</div>
+                <div class="fw-semibold">Distributor</div>
+                <div class="small opacity-75">Warehousing & bulk transfer</div>
+              </div>
+
+              <div class="supply-arrow">↓ Regional Distribution ↓</div>
+
+              <div class="d-flex gap-3 w-100 justify-content-center">
+                <div class="supply-node flex-1" style="background:linear-gradient(135deg,#0f3460,#533483)">
+                  <div style="font-size:1.5rem">💊</div>
+                  <div class="fw-semibold small">Pharmacy</div>
+                  <div style="font-size:.7rem;opacity:.75">Retail dispensing</div>
+                </div>
+                <div class="supply-node flex-1" style="background:linear-gradient(135deg,#c0392b,#e74c3c)">
+                  <div style="font-size:1.5rem">🏥</div>
+                  <div class="fw-semibold small">Hospital</div>
+                  <div style="font-size:.7rem;opacity:.75">Patient treatment</div>
+                </div>
+              </div>
+
+              <div class="supply-arrow">↓</div>
+
+              <div class="supply-node" style="background:linear-gradient(135deg,#373b44,#4286f4)">
+                <div style="font-size:1.5rem">🙋</div>
+                <div class="fw-semibold small">Consumer</div>
+                <div style="font-size:.7rem;opacity:.75">Verifies via QR scan</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+  .supply-node { color:white; border-radius:14px; padding:16px 24px; text-align:center; width:260px; margin:0 auto; }
+  .supply-arrow { color:#6c757d; font-weight:600; font-size:.875rem; padding:6px 0; letter-spacing:.5px; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

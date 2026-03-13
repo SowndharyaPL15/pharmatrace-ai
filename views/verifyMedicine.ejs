@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Medicine — PharmaTrace AI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <!-- ZXing QR Scanner library -->
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
+  <style>
+    .verify-banner { padding:16px 22px; border-radius:12px; font-size:1.1rem; font-weight:700; margin-bottom:20px; display:flex; align-items:center; gap:12px; }
+    .verify-banner.authentic   { background:#d1fae5; color:#065f46; border-left:6px solid #059669; }
+    .verify-banner.defective   { background:#fef3c7; color:#92400e; border-left:6px solid #d97706; }
+    .verify-banner.counterfeit { background:#fee2e2; color:#7f1d1d; border-left:6px solid #dc2626; }
+    .verify-banner.expired     { background:#ede9fe; color:#4c1d95; border-left:6px solid #7c3aed; }
+    .verify-banner.rejected    { background:#f3f4f6; color:#374151; border-left:6px solid #6b7280; }
+
+    /* QR Scanner styles */
+    #qr-scanner-container {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #qr-video {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 16px;
+      border: 3px solid #0d6efd;
+    }
+    #qr-overlay {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -60%);
+      width: 220px; height: 220px;
+      border: 3px solid #0d6efd;
+      border-radius: 12px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+    #qr-overlay::before, #qr-overlay::after {
+      content: '';
+      position: absolute;
+      width: 30px; height: 30px;
+      border-color: #0d6efd;
+      border-style: solid;
+    }
+    #qr-overlay::before { top:-3px; left:-3px; border-width:4px 0 0 4px; border-radius:4px 0 0 4px; }
+    #qr-overlay::after  { bottom:-3px; right:-3px; border-width:0 4px 4px 0; border-radius:0 4px 4px 0; }
+    .scanner-line {
+      position: absolute;
+      width: 200px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #0d6efd, transparent);
+      animation: scan 2s linear infinite;
+      top: 50%; left: 50%; transform: translateX(-50%);
+    }
+    @keyframes scan {
+      0%   { margin-top: -100px; }
+      100% { margin-top:  100px; }
+    }
+    #camera-select { max-width: 340px; }
+  </style>
+</head>
+<body>
+<%- include('partials/navbar') %>
+<div class="container py-4" style="max-width:900px">
+
+  <div class="d-flex align-items-center gap-3 mb-3">
+    <div style="font-size:2.5rem">🔍</div>
+    <div>
+      <h4 class="fw-bold mb-0">Medicine Authenticity Verification</h4>
+      <p class="text-muted small mb-0">Enter Batch ID manually OR scan a QR code using your camera</p>
+    </div>
+  </div>
+
+  <!-- Search + Scan Row -->
+  <form method="POST" action="/verify" class="mb-3" id="verifyForm">
+    <div class="input-group input-group-lg shadow-sm">
+      <input type="text" name="batch_id" id="batchInput" class="form-control border-2"
+             placeholder="Enter Batch ID  (e.g. BATCH-2024-001)"
+             value="<%= (result && result.found) ? result.medicine.batch_id : '' %>">
+      <button class="btn btn-primary px-4 fw-semibold" type="submit">🔍 Verify</button>
+      <button class="btn btn-success px-4 fw-semibold" type="button" id="openScannerBtn">
+        📷 Scan QR
+      </button>
+    </div>
+    <div class="form-text mt-1">No login required. Scan QR code or type Batch ID to verify instantly.</div>
+  </form>
+
+  <!-- ── QR Scanner Modal ───────────────────────────────────── -->
+  <div id="qr-scanner-container" style="display:none;">
+    <div class="text-white text-center mb-3">
+      <h5 class="fw-bold mb-1">📷 Scan QR Code</h5>
+      <p class="small text-white-50 mb-2">Point camera at the medicine QR code</p>
+      <select id="camera-select" class="form-select form-select-sm mb-3"></select>
+    </div>
+
+    <div style="position:relative; width:100%; max-width:400px;">
+      <video id="qr-video" playsinline></video>
+      <div id="qr-overlay">
+        <div class="scanner-line"></div>
+      </div>
+    </div>
+
+    <div id="scan-result" class="mt-3 text-center" style="min-height:40px"></div>
+
+    <button class="btn btn-danger mt-4 px-5" id="closeScannerBtn">✕ Cancel</button>
+  </div>
+
+  <!-- ── Verification Results ───────────────────────────────── -->
+  <% if (result) { %>
+    <% if (!result.found) { %>
+      <div class="alert alert-danger d-flex align-items-center gap-3">
+        <span style="font-size:2rem">❌</span>
+        <div>
+          <strong>Batch ID Not Found</strong><br>
+          No medicine registered with Batch ID <code><%= result.batch_id %></code>.
+          This may indicate a counterfeit product.
+        </div>
+      </div>
+
+    <% } else { %>
+      <%
+        const statusMap = {
+          AUTHENTIC:   { cls:'authentic',   icon:'✅', label:'AUTHENTIC' },
+          DEFECTIVE:   { cls:'defective',   icon:'⚠️', label:'DEFECTIVE BATCH' },
+          COUNTERFEIT: { cls:'counterfeit', icon:'🚨', label:'COUNTERFEIT DETECTED' },
+          EXPIRED:     { cls:'expired',     icon:'🕐', label:'EXPIRED' },
+          REJECTED:    { cls:'rejected',    icon:'🚫', label:'REJECTED' }
+        };
+        const st = statusMap[result.authStatus] || statusMap['AUTHENTIC'];
+      %>
+
+      <div class="verify-banner <%= st.cls %>">
+        <span style="font-size:1.8rem"><%= st.icon %></span>
+        <div>
+          <div>Verification Status: <strong><%= st.label %></strong></div>
+          <div style="font-size:.85rem; font-weight:400; opacity:.8">Verified against PharmaTrace AI live database</div>
+        </div>
+      </div>
+
+      <!-- Medicine Details -->
+      <div class="card mb-3">
+        <div class="card-header fw-semibold bg-light d-flex justify-content-between align-items-center">
+          <span>💊 Medicine Details</span>
+          <% if(result.qrDataUrl) { %>
+            <a id="qrDownloadBtn" href="<%= result.qrDataUrl %>" download="QR-<%= result.medicine.batch_id %>.png"
+               class="btn btn-sm btn-outline-secondary">📥 Download QR</a>
+          <% } %>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-8">
+              <table class="table table-sm table-borderless mb-0">
+                <tr><th style="width:180px;color:#666">Batch ID</th><td><code class="text-primary fw-bold"><%= result.medicine.batch_id %></code></td></tr>
+                <tr><th style="color:#666">Medicine Name</th><td><strong style="font-size:1.05rem"><%= result.medicine.medicine_name %></strong></td></tr>
+                <tr><th style="color:#666">Manufacturer</th><td><%= result.medicine.manufacturer_name %></td></tr>
+                <% if(result.medicine.active_ingredient){ %>
+                <tr><th style="color:#666">Active Ingredient</th><td><%= result.medicine.active_ingredient %></td></tr>
+                <% } %>
+                <% if(result.medicine.dosage_form){ %>
+                <tr><th style="color:#666">Dosage Form</th><td><%= result.medicine.dosage_form %></td></tr>
+                <% } %>
+                <tr><th style="color:#666">Manufacturing Date</th>
+                  <td><%= new Date(result.medicine.manufacturing_date).toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}) %></td>
+                </tr>
+                <tr><th style="color:#666">Expiry Date</th>
+                  <td class="<%= new Date(result.medicine.expiry_date) < new Date() ? 'text-danger fw-bold' : 'text-success fw-semibold' %>">
+                    <%= new Date(result.medicine.expiry_date).toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}) %>
+                    <% if(new Date(result.medicine.expiry_date) < new Date()){ %>
+                      <span class="badge bg-danger ms-1">EXPIRED</span>
+                    <% } %>
+                  </td>
+                </tr>
+                <tr><th style="color:#666">Quantity</th><td><%= result.medicine.quantity.toLocaleString() %> units</td></tr>
+                <% if(result.medicine.package_type){ %>
+                <tr><th style="color:#666">Package Type</th><td><%= result.medicine.package_type %></td></tr>
+                <% } %>
+                <% if(result.medicine.storage_condition){ %>
+                <tr><th style="color:#666">Storage Condition</th><td><%= result.medicine.storage_condition %></td></tr>
+                <% } %>
+                <% if(result.medicine.temperature_requirement){ %>
+                <tr><th style="color:#666">Temperature</th><td><%= result.medicine.temperature_requirement %></td></tr>
+                <% } %>
+                <tr><th style="color:#666">Approval Status</th>
+                  <td><span class="badge bg-<%= result.medicine.status==='approved'?'success':result.medicine.status==='rejected'?'danger':'warning text-dark' %>">
+                    <%= result.medicine.status.toUpperCase() %>
+                  </span></td>
+                </tr>
+              </table>
+            </div>
+            <div class="col-md-4 text-center d-flex align-items-center justify-content-center">
+              <% if(result.qrDataUrl) { %>
+                <div>
+                  <div style="border:3px solid #dee2e6; border-radius:12px; padding:14px; display:inline-block; background:#fff;">
+                    <img id="qrImg" src="<%= result.qrDataUrl %>" width="170" height="170" alt="QR Code" style="display:block">
+                  </div>
+                  <p class="text-muted small mt-2 mb-1">Official QR Code</p>
+                  <a href="/medicines/qr/page/<%= result.medicine.batch_id %>" target="_blank"
+                     class="btn btn-sm btn-outline-primary mt-1">🖨️ Print QR</a>
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quality Tests -->
+      <% if(result.tests.length) { %>
+      <div class="card mb-3">
+        <div class="card-header fw-semibold bg-light">🔬 Quality Test History</div>
+        <div class="table-responsive">
+          <table class="table table-hover table-sm mb-0">
+            <thead class="table-dark">
+              <tr><th>Date</th><th>Inspector</th><th>Purity%</th><th>pH</th><th>Sterile</th><th>Contaminated</th><th>AI Risk</th><th>Result</th></tr>
+            </thead>
+            <tbody>
+            <% result.tests.forEach(t => { %>
+              <tr>
+                <td class="small"><%= new Date(t.tested_at).toLocaleDateString('en-IN') %></td>
+                <td class="small"><%= t.inspector_name %></td>
+                <td class="<%= t.purity_percentage < 80 ? 'text-danger fw-bold' : 'text-success' %> small"><%= t.purity_percentage %>%</td>
+                <td class="small"><%= t.ph_level %></td>
+                <td><%= t.sterility_status ? '✅' : '❌' %></td>
+                <td><%= t.contamination_flag ? '⚠️ Yes' : '✅ No' %></td>
+                <td>
+                  <% if(t.ai_risk_level){ %>
+                    <span class="badge bg-<%= t.ai_risk_level==='HIGH'?'danger':t.ai_risk_level==='MEDIUM'?'warning text-dark':'success' %>" style="font-size:.65rem"><%= t.ai_risk_level %></span>
+                  <% } else { %>—<% } %>
+                </td>
+                <td><span class="badge bg-<%= t.test_result==='SAFE'?'success':'danger' %>"><%= t.test_result %></span></td>
+              </tr>
+            <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <% } else { %>
+        <div class="alert alert-secondary">No quality tests recorded for this batch yet.</div>
+      <% } %>
+
+      <!-- Supply Chain -->
+      <% if(result.supply.length) { %>
+      <div class="card mb-3">
+        <div class="card-header fw-semibold bg-light">🚚 Supply Chain Journey (<%= result.supply.length %> transfer(s))</div>
+        <div class="card-body">
+          <% result.supply.forEach((s, i) => { %>
+          <div class="mb-3" style="position:relative; padding-left:20px; margin-left:6px; border-left:3px solid <%= s.confirmed ? '#198754' : '#dee2e6' %>">
+            <div style="width:14px;height:14px;border-radius:50%;background:<%= s.confirmed ? '#198754':'#0d6efd' %>;position:absolute;left:-8.5px;top:10px;border:2px solid white;box-shadow:0 0 0 2px <%= s.confirmed ? '#198754':'#0d6efd' %>"></div>
+            <div class="card p-3">
+              <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                  <strong><%= s.sender_name %></strong>
+                  <span class="badge bg-secondary ms-1" style="font-size:.65rem"><%= s.sender_role %></span>
+                  <% if(s.sender_org){ %><small class="text-muted"> · <%= s.sender_org %></small><% } %>
+                  <span class="mx-2 fw-bold text-muted">→</span>
+                  <strong><%= s.receiver_name %></strong>
+                  <span class="badge bg-info ms-1" style="font-size:.65rem"><%= s.receiver_role %></span>
+                  <% if(s.receiver_org){ %><small class="text-muted"> · <%= s.receiver_org %></small><% } %>
+                </div>
+                <span class="badge bg-<%= s.confirmed ? 'success' : 'warning text-dark' %>">
+                  <%= s.confirmed ? '✅ Confirmed' : '⏳ Pending' %>
+                </span>
+              </div>
+              <div class="small text-muted mt-1">
+                📍 <strong><%= s.location || 'N/A' %></strong> &nbsp;·&nbsp;
+                🕐 <%= new Date(s.transfer_date).toLocaleString('en-IN') %>
+                <% if(s.quantity){ %> &nbsp;·&nbsp; 📦 <%= s.quantity %> units<% } %>
+              </div>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+      </div>
+      <% } %>
+
+      <!-- Alerts -->
+      <% if(result.alerts.length) { %>
+      <div class="card mb-3">
+        <div class="card-header fw-semibold bg-light text-danger">🚨 Alerts for This Batch</div>
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead class="table-dark"><tr><th>Type</th><th>Severity</th><th>Message</th><th>Date</th><th>Status</th></tr></thead>
+            <tbody>
+            <% result.alerts.forEach(a => { %>
+              <tr>
+                <td class="small"><%= a.alert_type %></td>
+                <td><span class="badge bg-<%= a.severity==='CRITICAL'?'danger':a.severity==='HIGH'?'warning text-dark':a.severity==='MEDIUM'?'info':'secondary' %>"><%= a.severity %></span></td>
+                <td class="small"><%= a.message %></td>
+                <td class="small text-muted"><%= new Date(a.created_at).toLocaleDateString('en-IN') %></td>
+                <td><span class="badge bg-<%= a.resolved?'success':'danger' %>"><%= a.resolved?'Resolved':'Active' %></span></td>
+              </tr>
+            <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <% } %>
+
+    <% } %>
+  <% } %>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/charts.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════
+//  BUILT-IN QR SCANNER  (ZXing library)
+//  Works fully inside the browser — no phone app needed
+// ═══════════════════════════════════════════════════════════
+const codeReader   = new ZXing.BrowserMultiFormatReader();
+const scannerBox   = document.getElementById('qr-scanner-container');
+const openBtn      = document.getElementById('openScannerBtn');
+const closeBtn     = document.getElementById('closeScannerBtn');
+const videoEl      = document.getElementById('qr-video');
+const camSelect    = document.getElementById('camera-select');
+const scanResult   = document.getElementById('scan-result');
+const batchInput   = document.getElementById('batchInput');
+const verifyForm   = document.getElementById('verifyForm');
+
+let scanning = false;
+
+// ── Open scanner ────────────────────────────────────────────
+openBtn.addEventListener('click', async () => {
+  scannerBox.style.display = 'flex';
+  scanResult.innerHTML = '<span class="text-white-50 small">📷 Starting camera...</span>';
+
+  try {
+    // Populate camera list
+    const devices = await codeReader.listVideoInputDevices();
+    camSelect.innerHTML = '';
+    if (devices.length === 0) {
+      scanResult.innerHTML = '<span class="text-danger">❌ No camera found on this device.</span>';
+      return;
+    }
+    devices.forEach((d, i) => {
+      const opt = document.createElement('option');
+      opt.value = d.deviceId;
+      opt.text  = d.label || `Camera ${i + 1}`;
+      // Prefer back camera on mobile
+      if (d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear')) {
+        opt.selected = true;
+      }
+      camSelect.appendChild(opt);
+    });
+
+    startScanning(camSelect.value);
+  } catch (err) {
+    scanResult.innerHTML = `<span class="text-danger">❌ Camera error: ${err.message}</span>`;
+  }
+});
+
+// ── Switch camera ───────────────────────────────────────────
+camSelect.addEventListener('change', () => {
+  codeReader.reset();
+  startScanning(camSelect.value);
+});
+
+// ── Start scanning ──────────────────────────────────────────
+function startScanning(deviceId) {
+  scanning = true;
+  scanResult.innerHTML = '<span class="text-white-50 small">🔍 Scanning... point at QR code</span>';
+
+  codeReader.decodeFromVideoDevice(deviceId, videoEl, (result, err) => {
+    if (result && scanning) {
+      scanning = false;
+      const scannedText = result.getText();
+      scanResult.innerHTML = `<span class="text-success fw-bold">✅ QR Scanned!</span>`;
+
+      // Extract batch ID from URL or use raw text
+      let batchId = scannedText;
+      try {
+        const url    = new URL(scannedText);
+        const parts  = url.pathname.split('/');
+        const idx    = parts.indexOf('verify');
+        if (idx !== -1 && parts[idx + 1]) {
+          batchId = decodeURIComponent(parts[idx + 1]);
+        }
+      } catch (e) {
+        // Not a URL — use raw text as batch ID
+        batchId = scannedText;
+      }
+
+      // Fill input and auto-submit
+      batchInput.value = batchId;
+      setTimeout(() => {
+        codeReader.reset();
+        scannerBox.style.display = 'none';
+        verifyForm.submit();
+      }, 800);
+    }
+  });
+}
+
+// ── Close scanner ───────────────────────────────────────────
+closeBtn.addEventListener('click', () => {
+  scanning = false;
+  codeReader.reset();
+  scannerBox.style.display = 'none';
+  scanResult.innerHTML = '';
+});
+</script>
+</body>
+</html>
