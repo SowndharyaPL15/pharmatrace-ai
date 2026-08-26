@@ -4,7 +4,7 @@
 databases:
   - name: pharmatrace-db
     databaseName: pharmatrace
-    user: postgres
+    user: pharmatrace_user
     plan: free
 
 services:
