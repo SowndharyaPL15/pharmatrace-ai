@@ -21,7 +21,7 @@ services:
   - type: web
     name: pharmatrace-web-server
     env: node
-    buildCommand: npm install
+    buildCommand: rm -rf node_modules && npm install
     startCommand: node server.js
     plan: free
     envVars:
