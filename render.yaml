@@ -1,12 +1,6 @@
 # PharmaTrace AI - Render Deployment Blueprint
 # This configuration creates a PostgreSQL database, the Flask AI Service, and the Express Main Server.
 
-databases:
-  - name: pharmatrace-db
-    databaseName: pharmatrace
-    user: pharmatrace_user
-    plan: free
-
 services:
 
   # ── Flask AI Service ──────────────────────────────────────────
@@ -40,24 +34,6 @@ services:
           type: web
           name: pharmatrace-ai-service
           property: host
-      # Link DB properties using Render's database references
-      - key: DB_HOST
-        fromDatabase:
-          name: pharmatrace-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: pharmatrace-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: pharmatrace-db
-          property: database
-      - key: DB_USER
-        fromDatabase:
-          name: pharmatrace-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: pharmatrace-db
-          property: password
+      # Link DB directly using Neon Connection URI string (added manually in Render dashboard env key)
+      - key: DATABASE_URL
+        sync: false
