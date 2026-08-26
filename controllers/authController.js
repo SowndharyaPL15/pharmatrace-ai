@@ -41,7 +41,7 @@ exports.register = async (req, res) => {
     req.flash('success', 'Account created successfully. Please log in.');
     res.redirect('/login');
   } catch (err) {
-    console.error('[Auth] Register error:', err.message);
+    console.error('[Auth] Register error:', err);
     req.flash('error', 'Registration failed: ' + err.message);
     res.redirect('/register');
   }
@@ -75,7 +75,7 @@ exports.login = async (req, res) => {
     req.flash('success', `Welcome back, ${user.username}!`);
     res.redirect('/dashboard');
   } catch (err) {
-    console.error('[Auth] Login error:', err.message);
+    console.error('[Auth] Login error:', err);
     req.flash('error', 'Login error. Please try again.');
     res.redirect('/login');
   }
