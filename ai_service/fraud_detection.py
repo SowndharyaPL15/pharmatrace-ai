@@ -137,10 +137,10 @@ def clear_results():
 
 
 if __name__ == '__main__':
-    print("\n╔══════════════════════════════════════════╗")
-    print("║   🤖  PharmaTrace AI Service  Started   ║")
-    print("╚══════════════════════════════════════════╝")
-    print("  🔬  Endpoint → http://localhost:5001/analyze")
-    print("  📊  Results  → http://localhost:5001/results")
-    print("  ❤️   Health   → http://localhost:5001/health\n")
+    print("\n+------------------------------------------+")
+    print("|     PharmaTrace AI Service  Started      |")
+    print("+------------------------------------------+")
+    print("  Endpoint -> http://localhost:5001/analyze")
+    print("  Results  -> http://localhost:5001/results")
+    print("  Health   -> http://localhost:5001/health\n")
     app.run(host='0.0.0.0', port=5001, debug=True)

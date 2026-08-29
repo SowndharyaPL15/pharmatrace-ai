@@ -1,6 +1,8 @@
 # 💊 PharmaTrace AI
 PharmaTrace AI — A full-stack medicine authentication & supply chain monitoring system built with Node.js, PostgreSQL, and Python Flask. Features real-time QR code generation, built-in QR scanner, AI-powered fraud detection, quality testing, counterfeit alerts, role-based access, and complete batch tracking.
 
+🔗 **Live Demo:** [https://pharmatrace-web-server.onrender.com](https://pharmatrace-web-server.onrender.com)
+
 ### Intelligent Medicine Quality Testing, Authentication & Supply Chain Monitoring System
 
 ---
